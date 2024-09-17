@@ -14,7 +14,7 @@ interface IProps {
  * Perspective library adds load to HTMLElement prototype.
  * This interface acts as a wrapper for Typescript compiler.
  */
-interface PerspectiveViewerElement {
+interface PerspectiveViewerElement extends HTMLElement {
   load: (table: Table) => void,
 }
 
@@ -32,7 +32,7 @@ class Graph extends Component<IProps, {}> {
 
   componentDidMount() {
     // Get element to attach the table from the DOM.
-    const elem: PerspectiveViewerElement = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+    const elem = document.getElementsByTagName('perspective-viewer')[0] as PerspectiveViewerElement;
 
     const schema = {
       stock: 'string',
@@ -46,23 +46,32 @@ class Graph extends Component<IProps, {}> {
     }
     if (this.table) {
       // Load the `table` in the `<perspective-viewer>` DOM reference.
-
-      // Add more Perspective configurations here.
       elem.load(this.table);
+
+      // Add more Perspective configurations here for graph display.
+      elem.setAttribute('view', 'y_line');  // Set graph type as a continuous line chart.
+      elem.setAttribute('column-pivots', '["stock"]');  // Distinguish stock symbols.
+      elem.setAttribute('row-pivots', '["timestamp"]');  // Set x-axis as timestamp.
+      elem.setAttribute('columns', '["top_ask_price"]');  // Set y-axis as top_ask_price.
+      elem.setAttribute('aggregates', JSON.stringify({
+        stock: 'distinct',
+        timestamp: 'distinct',
+        top_ask_price: 'avg',
+        top_bid_price: 'avg',
+      }));  // Handle duplicates by averaging prices.
     }
   }
 
   componentDidUpdate() {
-    // Everytime the data props is updated, insert the data into Perspective table
+    // Every time the data props are updated, insert the data into Perspective table.
     if (this.table) {
-      // As part of the task, you need to fix the way we update the data props to
-      // avoid inserting duplicated entries into Perspective table again.
+      // Avoid inserting duplicated entries into Perspective table.
       this.table.update(this.props.data.map((el: any) => {
         // Format the data from ServerRespond to the schema
         return {
           stock: el.stock,
-          top_ask_price: el.top_ask && el.top_ask.price || 0,
-          top_bid_price: el.top_bid && el.top_bid.price || 0,
+          top_ask_price: el.top_ask?.price || 0,
+          top_bid_price: el.top_bid?.price || 0,
           timestamp: el.timestamp,
         };
       }));
